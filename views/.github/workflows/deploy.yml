@@ -40,3 +40,4 @@ jobs:
           docker stop multi-tier-app || true
           docker rm multi-tier-app || true
           docker run -d --name multi-tier-app -p 80:3000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/multi-tier-app:latest
+#
