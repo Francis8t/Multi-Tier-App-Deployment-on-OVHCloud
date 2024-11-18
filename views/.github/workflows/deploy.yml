@@ -1,0 +1,42 @@
+name: Deploy multi-tier-app on OVHCloud
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Step 2: Log in to DockerHub
+    - name: Log in to DockerHub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # Step 3: Build and push Docker image
+    - name: Build and push Docker image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/multi-tier-app:latest .
+        docker push ${{ secrets.DOCKER_USERNAME }}/multi-tier-app:latest
+
+    # Step 4: Deploy to OVHCloud
+    - name: Deploy to OVHCloud Instance
+      uses: appleboy/ssh-action@v0.1.8
+      with:
+        host: ${{ secrets.OVH_HOST }}
+        username: ${{ secrets.OVH_USERNAME }}
+        key: ${{ secrets.OVH_SSH_PRIVATE_KEY }}
+        port: 22
+        script: |
+          docker pull ${{ secrets.DOCKER_USERNAME }}/multi-tier-app:latest
+          docker stop multi-tier-app || true
+          docker rm multi-tier-app || true
+          docker run -d --name multi-tier-app -p 80:3000 --env-file .env ${{ secrets.DOCKER_USERNAME }}/multi-tier-app:latest
